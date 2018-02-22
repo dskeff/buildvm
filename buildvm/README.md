@@ -12,6 +12,7 @@ The script is only tested and written on CentOS.
 
 The sample directory and file structure for the the base VM image is as follows:
 
+```
    |-- icp01
    |   |---icp01.vmx
    |   |---icp01.vmdk
@@ -38,6 +39,7 @@ The sample directory and file structure for the the base VM image is as follows:
    |-- RUN06-TakeSnapshot.CMD
    |-- RUN07-Create-Desktop-Shortcut.CMD
    |-- RUN08-Create-Desktop-Shortcut.vbs
+```
 
 I have Server with GUI VMDK created for icp01 and minimum server install for icp02.
 
