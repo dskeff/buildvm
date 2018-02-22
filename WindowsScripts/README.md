@@ -11,9 +11,9 @@ Check List before you run the command.
 Minimum Memory Requirement
 ==========================
 
-A. You must have minimum 32 GB RAM and minimum 130 GB of free storage space.
+1. You must have minimum 32 GB RAM and minimum 130 GB of free storage space.
 
-B. Please open a command line window and type "powershell" and you should see another
+2. Please open a command line window and type "powershell" and you should see another
    command line window. We run a PowerShell script to change the VMware vmx file to set
    memory appropriately.
 
@@ -21,18 +21,18 @@ B. Please open a command line window and type "powershell" and you should see an
 VMware Workstation Dependencies and vmnet setting
 =================================================
 
-A. Start VMware Work Station and click Help > About.
+1. Start VMware Work Station and click Help > About.
    Your VMware Workstation must be 12.5.2 or higher.
    If it is not, please procure / upgrade your VMware Workstation
 
-B. Please make sure that vmrun.exe is available in C:\Program Files (x86)\VMware\VMware VIX.
+2. Please make sure that vmrun.exe is available in C:\Program Files (x86)\VMware\VMware VIX.
    If vmrun is not available, please stop and install it using VMware Workstation software install.
 
-C. Click on Edit > Preferences and click on Memory. If using 32 GB RAM, change the reserved memory to 28368 KB.
+3. Click on Edit > Preferences and click on Memory. If using 32 GB RAM, change the reserved memory to 28368 KB.
 
-D. Close existing VM tabs, if any.
+4. Close existing VM tabs, if any.
 
-E. Close VMware Work Station. Click File > Exit.
+5. Close VMware Work Station. Click File > Exit.
 
 
 Unzip the files to a folder of your choice
@@ -74,24 +74,19 @@ build process will clone and prepare other machines.
 We need an Elevated Shell
 =========================
 
-G. Open a command window with Adminstrative privileges.
-   (a) - Click Start, click All Programs, and then click Accessories.
-   (b) - Right-click Command prompt, and then click Run as administrator.
-   (c) - If the User Account Control dialog box appears, confirm that the action
-         it displays is what you want, and then click Continue.
+1. Open a command window with Adminstrative privileges.
+   - Click Start, click All Programs, and then click Accessories.
+   - Right-click Command prompt, and then click Run as administrator.
+   - If the User Account Control dialog box appears, confirm that the action      it displays is what you want, and then click Continue.
 
-Clone Machines, Install Software and create DB2 DPF Environment
+Clone Machines, Install Software and create GPFS Cluster
 ===============================================================
 
-H. Change directory in your elevated shell where you unzip files
+1. Change directory in your elevated shell where you unzip files
 
-I. Type command "RUN00-Build-All.CMD" and this will run all
+2. Type command "RUN00-Build-All.CMD" and this will run all
    commands in the sequence to clone and prepare all 4 machines:
 
-   RUN00-Build-All.CMD may take 50-70 minutes to complete all operations using SSD.         
+   `RUN00-Build-All.CMD` may take 50-70 minutes to complete all operations using SSD.         
 
-   Note: While commands are running, please do not do other activity. You may
-         see VMware prompt and click Yes or OK to continue.
-
-
-J. Use this base machine to image laptops for the class.
+   Note: While commands are running, please do not do other activity. You may see VMware prompt and click Yes or OK to continue.
