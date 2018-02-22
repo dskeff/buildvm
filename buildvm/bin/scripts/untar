@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+#
+# Author : Vikram Khatri
+#
+# Purpose: untar files only on node01
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+if [[ -z "$BINHOME" ]] ; then
+   . /root/bin/setup/setenvvars
+fi
+
+$SCRIPTHOME/mntdisk
+cd $DOWNLOADDIR
+echo ========================================
+echo $(date +"%D %T.%3N") Unzipping files $POT_LAB_TAR_GZ
+echo ========================================
+tar xfz $POT_LAB_TAR_GZ -C /home/db2psc/
+#echo ========================================
+#echo $(date +"%D %T.%3N") Unzipping files $DOCKER_LOAD_IMAGE
+#echo ========================================
+#gunzip $DOCKER_LOAD_IMAGE
+echo $(date +"%D %T.%3N") Unzipping files done ...
+sleep 5
+sync
+echo ========================================

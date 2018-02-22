@@ -1,0 +1,33 @@
+---
+# General config
+wait_for_timeout: 600
+skip_pre_check: true
+firewall_enabled: false
+auditlog_enabled: false
+federation_enabled: false
+secure_connection_enabled: false
+network_type: calico
+network_cidr: 10.1.0.0/16
+service_cluster_ip_range: 10.0.0.1/24
+kubelet_extra_args: ["--fail-swap-on=false"]
+cluster_name: pot_icp_cluster
+default_admin_user: admin
+default_admin_password: admin
+disabled_management_services: ["metering", "monitoring", "va"] 
+kibana_install: false 
+glusterfs: true
+storage:
+  - kind: glusterfs
+    nodes:
+      - ip: 192.168.142.103
+        device: /dev/disk/by-path/pci-0000:00:10.0-scsi-0:0:3:0
+      - ip: 192.168.142.104
+        device: /dev/disk/by-path/pci-0000:00:10.0-scsi-0:0:3:0
+      - ip: 192.168.142.105
+        device: /dev/disk/by-path/pci-0000:00:10.0-scsi-0:0:3:0
+    storage_class:
+      name: glusterfs-storage
+      default: false
+docker_log_max_size: 10m
+docker_log_max_file: 10
+...

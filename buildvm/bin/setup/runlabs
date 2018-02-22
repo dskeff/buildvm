@@ -1,0 +1,40 @@
+#!/bin/bash
+#
+# Author : Vikram Khatri
+#
+# Purpose: Load IBM Cloud Private Docker Image
+
+# We should be here only after ssh has been done for all nodes
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+set -x
+
+if [[ -z "$BINHOME" ]] ; then
+   . /root/bin/setup/setenvvars
+fi
+
+LAB01=$POT_HOME/01setup
+LAB02=$POT_HOME/02gpfs
+LAB03=$POT_HOME/03icp
+
+echo ####################################################
+echo $(date +"%D %T.%3N") Install GPFS binaries and build direct-LVM
+echo ####################################################
+cd $LAB01
+./.runmaster01
+echo ####################################################
+echo $(date +"%D %T.%3N") Create GPFS file system
+echo ####################################################
+cd $LAB02
+./.runmaster02
+echo ####################################################
+echo $(date +"%D %T.%3N") Load and build ICP Image
+echo ####################################################
+cd $LAB03
+./.runmaster03
+touch $LAB_DONE_FLAG
+sync
