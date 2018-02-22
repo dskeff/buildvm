@@ -1,5 +1,5 @@
 
-PLEASE DO NOT RUN icp01.vmx as this will break the build process. 
+PLEASE DO NOT RUN icp01.vmx as this will break the build process.
 
 First run RUN00-Build-All.CMD to build machines in the right order.
 
@@ -13,16 +13,16 @@ Minimum Memory Requirement
 
 A. You must have minimum 32 GB RAM and minimum 130 GB of free storage space.
 
-B. Please open a command line window and type "powershell" and you should see another 
-   command line window. We run a PowerShell script to change the VMware vmx file to set 
+B. Please open a command line window and type "powershell" and you should see another
+   command line window. We run a PowerShell script to change the VMware vmx file to set
    memory appropriately.
 
 
 VMware Workstation Dependencies and vmnet setting
 =================================================
 
-A. Start VMware Work Station and click Help > About. 
-   Your VMware Workstation must be 12.5.2 or higher. 
+A. Start VMware Work Station and click Help > About.
+   Your VMware Workstation must be 12.5.2 or higher.
    If it is not, please procure / upgrade your VMware Workstation
 
 B. Please make sure that vmrun.exe is available in C:\Program Files (x86)\VMware\VMware VIX.
@@ -39,7 +39,7 @@ Unzip the files to a folder of your choice
 ==========================================
 
 You should see the following directory and file structure after unzip
-
+```
    |-- icp01
    |   |---icp01.vmx
    |   |---icp01.vmdk
@@ -65,7 +65,7 @@ You should see the following directory and file structure after unzip
    |-- RUN06-TakeSnapshot.CMD
    |-- RUN07-Create-Desktop-Shortcut.CMD
    |-- RUN08-Create-Desktop-Shortcut.vbs
-
+```
 We will use 4 virtual machines for this proof of technology.
 
 Please notice that the VMDK files are given only for the first machine and the
@@ -77,12 +77,12 @@ We need an Elevated Shell
 G. Open a command window with Adminstrative privileges.
    (a) - Click Start, click All Programs, and then click Accessories.
    (b) - Right-click Command prompt, and then click Run as administrator.
-   (c) - If the User Account Control dialog box appears, confirm that the action 
+   (c) - If the User Account Control dialog box appears, confirm that the action
          it displays is what you want, and then click Continue.
 
 Clone Machines, Install Software and create DB2 DPF Environment
 ===============================================================
- 
+
 H. Change directory in your elevated shell where you unzip files
 
 I. Type command "RUN00-Build-All.CMD" and this will run all
@@ -95,4 +95,3 @@ I. Type command "RUN00-Build-All.CMD" and this will run all
 
 
 J. Use this base machine to image laptops for the class.
-    
