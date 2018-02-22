@@ -1,2 +1,0 @@
-download	-fstype=nfs4,rw,soft,intr,rsize=8192,wsize=8192	node01:/mnt/disk
-pot_icp		-fstype=nfs4,rw,soft,intr,rsize=8192,wsize=8192	node01:/home/db2psc/pot_icp

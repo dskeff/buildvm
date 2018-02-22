@@ -1,4 +1,0 @@
-head_node=node01:192.168.142.101
-data_node1=node02:192.168.142.102
-data_node2=node03:192.168.142.103
-data_node3=node04:192.168.142.104

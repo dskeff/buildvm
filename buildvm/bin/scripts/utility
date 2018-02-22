@@ -1,9 +1,0 @@
-timestamp() {
-    date +'%Y-%m-%d %H:%M:%S.%3N'
-}
-
-logger ()
-{
-    echo "[$(timestamp)] $*"
-    return 0
-}

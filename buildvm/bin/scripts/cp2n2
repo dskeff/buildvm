@@ -1,5 +1,0 @@
-#!/bin/bash
-
-sshpass -p password $SSH 192.168.142.102 'rm -fr /root/bin'
-sshpass -p password $SCP -r /root/bin 192.168.142.102:/root
-sshpass -p password ssh 192.168.142.102 'ls -l /root/bin'

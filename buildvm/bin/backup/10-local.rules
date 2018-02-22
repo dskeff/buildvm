@@ -1,2 +1,0 @@
-KERNELS=="3:0:0:1", SYMLINK+="udb"
-KERNELS=="4:0:0:1", SYMLINK+="udc"

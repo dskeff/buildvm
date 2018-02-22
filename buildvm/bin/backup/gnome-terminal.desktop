@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Exec=gnome-terminal --window-with-profile=db2psc -e '/home/db2psc/bin/firstboot'
-Hidden=false
-X-GNOME-Autostart-enabled=true
-Name=GNOME Terminal
-Comment=Use the command line
-Icon=utilities-terminal
