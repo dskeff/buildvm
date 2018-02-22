@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#  Author Vikram Khatri
+
+if [[ -z "$BINHOME" ]] ; then
+   . /root/bin/setup/setenvvars
+fi
+
+SANITYDIR=/mnt/misc/download
+IPFILE=$SCHOME/ip.txt
+IPLINE=`sed -n 1p $IPFILE`
+ARRAY=($IPLINE)
+HOSTNAME=${ARRAY[3]}
+
+while true
+do
+   if ! ping -c 1 -w 5 $HOSTNAME &>/dev/null ; then
+      echo $HOSTNAME is down. Waiting for it to come backup
+      sleep 15
+   else
+      echo $(date +"%D %T.%3N") : $HOSTNAME is alive
+      if [ -d $SANITYDIR ] ; then 
+         echo $(date +"%D %T.%3N") $SANITYDIR is alive
+         break;
+      else 
+         echo $(date +"%D %T.%3N") $SANITYDIR still not available. Waiting for it 15 secs ....
+         sleep 15
+      fi
+   fi
+done

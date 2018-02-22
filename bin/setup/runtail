@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#  Author Vikram Khatri
+
+set +x
+
+if [ $# -lt 3 ] ; then
+    echo "Usage: $0 HOSTNAME TouchFile LogFile"
+    exit 1
+fi
+
+# Check if GUI is installed or not
+
+type Xorg 2>/dev/null
+if [[ $? -eq 1 ]] ; then
+   echo "GUI is not installed. Exiting ..... "
+   exit 1
+fi
+
+HOST=$1
+TOUCHFILE=$2
+LOGFILE=$3
+
+function isDone() {
+  target=$1
+  file=$2
+  $SSH $target "test -e $file" < /dev/null
+  if [ $? -eq 0 ] ; then
+     echo 0;
+  else
+     echo 1;
+  fi
+}
+
+lgg=$(isDone $HOST $LOGFILE)
+if [ $lgg -eq 0 ] ; then
+   ssh $HOST tail -n 500 -f $LOGFILE &
+   pid=$!
+   while true
+   do 
+      did=$(isDone $HOST $TOUCHFILE)
+      if [ $did -eq 0 ] ; then
+         kill -9 $pid
+         break;
+      else
+         echo $(date +"%D %T.%3N") in runtail 
+         sleep 30
+      fi
+   done
+fi

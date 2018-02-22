@@ -1,0 +1,13 @@
+#!/bin/bash
+
+SSH="/usr/bin/ssh -q -o StrictHostKeyChecking=no"
+servers="node01 node02 node03 node04"
+
+for s1 in $servers
+do
+   for s2 in $servers 
+   do
+      echo -n Testing ${s1} to ${s2} : 
+      $SSH ${s1} "date"
+   done
+done

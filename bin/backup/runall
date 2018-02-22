@@ -1,0 +1,10 @@
+#!/bin/bash
+
+SSH="/usr/bin/ssh -q -o StrictHostKeyChecking=no"
+servers="node01 node02 node03 node04 node05"
+
+for server in $servers
+do
+   echo Running "$@" on server $server
+   $SSH $server "$@"
+done

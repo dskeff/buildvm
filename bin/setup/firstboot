@@ -1,0 +1,160 @@
+#!/bin/bash
+#
+# Author : Vikram Khatri
+#
+
+# Source environment variables
+
+if [[ -z "$BINHOME" ]] ; then
+   . /root/bin/setup/setenvvars
+fi
+
+function dockerInstall () {
+   echo ####################################################
+   echo $(date +"%D %T.%3N") Install Docker EE package
+   echo This was downloaded  from Passport Advantage
+   echo CentOS repository contains only community edition
+   echo ####################################################
+   cd $DOWNLOADDIR
+   chmod +x $DOCKER_DRIVER
+   ./$DOCKER_DRIVER
+   systemctl enable docker.service
+   echo ####################################################
+   echo Modify docker.service to remove device-mapper directive from
+   echo ExecStart as we will be using /etc/docker/daemon.json 
+   echo to specify lvm-thin options for a device mapper 
+   echo ####################################################
+   sed -i '/^ExecStart.*--storage-driver=devicemapper.*/s/--storage-driver=devicemapper//g' \
+      /usr/lib/systemd/system/docker.service  
+   systemctl daemon-reload
+   systemctl start docker.service
+}
+
+set +x
+
+IPLINE=`sed -n 1p $SCHOME/ip.txt`
+ARRAY=($IPLINE)
+HOSTNAM=${ARRAY[3]}
+NODE01=${HOSTNAM%%.*}
+DOMAIN=${HOSTNAM#*.}
+NODENM=`hostname -s`
+
+if  [ ! -f $FIRST_BOOT_FLAG ] ; then
+   echo ####################################################
+   echo $(date +"%D %T.%3N") This is the first boot
+   echo ####################################################
+   touch $FIRST_BOOT_FLAG
+   echo Copy setenvvars to the home directory of root
+   $CP -f $BINHOME/setenvvars /root/.setenvvars
+   echo Add to the .bashrc file of the  root
+   if ! grep -qs setenvvars /root/.bashrc; then
+      echo "if [[ -f .setenvvars ]] ; then" >> /root/.bashrc
+      echo "  . ./.setenvvars"              >> /root/.bashrc
+      echo "fi"                             >> /root/.bashrc
+   fi 
+   echo Copy setenvvars to the home directory of the db2psc
+   $CP -f $BINHOME/setenvvars /home/db2psc/.setenvvars
+   chown db2psc.db2psc /home/db2psc/.setenvvars
+   echo Add to the .bashrc file of the db2psc user
+   if ! grep -qs setenvvars /home/db2psc/.bashrc; then
+      echo "if [[ -f .setenvvars ]] ; then" >> /home/db2psc/.bashrc
+      echo "  . ./.setenvvars"              >> /home/db2psc/.bashrc
+      echo "fi"                             >> /home/db2psc/.bashrc
+   fi 
+   echo Create local repository directory for containers only on management node
+   mkdir -p /var/lib/registry
+   mkdir -p /var/lib/icp/audit
+   $BINHOME/fixVMNode -1 pot
+   if [ $? -eq 255 ] ; then
+     echo "Return from fixVMNode is -1. Removing $FIRST_BOOT_FLAG"
+     $RM -f $FIRST_BOOT_FLAG
+     sleep 10
+     TAILPID=$(ps -ef | grep -i "tail -n 500 -[f]" | \
+         awk '{print $2}')
+     if [[ "$TAILPID" != "" ]] ; then
+        echo "Removing tail"
+        kill -9 $TAILPID
+     else
+        echo "tail not found running"
+     fi
+   fi
+else
+   echo $(date +"%D %T.%3N") This is second boot
+   if [ ! -f $SECOND_BOOT_FLAG ] ; then
+      $BINHOME/setXDisplay
+      mkdir -p /mnt/clusterfs
+      if [ "$NODE01" == "$NODENM" ] ; then
+         echo ####################################################
+	 echo $(date +"%D %T.%3N") Untar all files
+         echo ####################################################
+         $SCRIPTHOME/untar
+	 sleep 5
+         echo ####################################################
+	 echo $(date +"%D %T.%3N") Restart NFS for new folders 
+         echo ####################################################
+         systemctl restart nfs
+         cd $DOWNLOADDIR
+         #dockerInstall
+         echo ####################################################
+         echo $(date +"%D %T.%3N") Fixing ssh between all nodes
+         echo ####################################################
+         $BINHOME/fixSSH
+         #echo ####################################################
+         #echo Discover targets and create entries in /var/lib/iscsi/nodes
+         #echo and in /var/lib/iscsi/send_target
+         #echo ####################################################
+         #iscsiadm --mode discovery --type sendtargets --portal $NODE01 \
+         #   --login
+         echo ####################################################
+         echo $(date +"%D %T.%3N") Install IBM ICP docker Image
+         echo ####################################################
+         $BINHOME/runlabs
+         $CP -fp $SCHOME/firstboot.orig /home/db2psc/bin/firstboot
+         chown db2psc.db2psc /home/db2psc/bin/firstboot
+         su -l db2psc -c "crontab /home/db2psc/bin/backup/db2psc.crontab"
+      else
+         echo ####################################################
+         # Make sure that node01 is up for nfs
+         $BINHOME/waitForNFSNode
+         # force autofs to mount the filesystem on node02,03,04
+         cd $DOWNLOADDIR
+         cd /home/db2psc/pot_icp
+         #dockerInstall
+         #echo Discover targets and create entries in /var/lib/iscsi/nodes
+         #echo and in /var/lib/iscsi/send_target
+         #echo ####################################################
+         #iscsiadm --mode discovery --type sendtargets --portal $NODE01 \
+         #   --login
+         echo Checking if password ssh is done or not
+         while true
+         do
+            if $SSH $NODE01 "hostname -s"; then
+               $BINHOME/runtail $NODE01 $LAB_DONE_FLAG \
+                         $LOGFILE
+               break
+            else
+               echo $(date +"%D %T.%3N") Waiting for ssh config to complete
+               sleep 10
+            fi
+         done
+      fi
+      echo ####################################################
+      echo $(date +"%D %T.%3N") When done, remove run once
+      echo ####################################################
+      $CP -f $SCHOME/rc.local.orig /etc/rc.d/rc.local 
+      chmod 755 /etc/rc.d/rc.local
+      touch $SECOND_BOOT_FLAG
+      echo $(date +"%D %T.%3N") Done with the second boot ...
+      sleep 10
+      TAILPID=$(ps -ef | grep -i "tail -n 500 -[f]" | \
+          awk '{print $2}') 
+      if [[ "$TAILPID" != "" ]] ; then
+         kill -9 $TAILPID
+      else
+        echo tail pid not found
+      fi
+      sync
+   else
+      echo "Nothing to do"
+   fi
+fi

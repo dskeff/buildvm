@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# Author : Vikram Khatri
+# Purpose: Mount Disk
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+echo =============================================
+MOUNT=/mnt/disk
+DISK=`blkid | grep c80d2fb9-205d-46fd-b39e-3f4f0bb1ea6c | awk '{print $1}' | tr -d ':'`
+
+if grep -qs $MOUNT /proc/mounts; then
+   echo $DISK is already mounted
+else
+   mkdir -p $MOUNT
+   echo Mounting $DISK to $MOUNT
+   mount $DISK $MOUNT
+fi
+echo =============================================

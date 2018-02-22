@@ -1,0 +1,2 @@
+/mnt/disk	*(rw,no_root_squash,sync,no_subtree_check)
+/home/db2psc/pot_icp	*(rw,no_root_squash,sync,no_subtree_check)

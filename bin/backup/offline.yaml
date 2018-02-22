@@ -1,0 +1,41 @@
+# Licensed Materials - Property of IBM
+# cfc
+# @ Copyright IBM Corp. 2016, 2017 All Rights Reserved
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+
+---
+
+- name: Vikram Checking image package
+  shell: (ls {{ installer_dir }}/cluster/images/*-{{ ansible_architecture }}-{{ version }}.tar.gz 2>/dev/null || echo no) | head -1
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  register: image_package_name
+
+- name: Checking Kubernetes image
+  shell: docker inspect --type=image {{ ansible_architecture | image_name(k8s_image) }} &>/dev/null && echo yes || echo no
+  args:
+    executable: /bin/bash
+  register: k8s_image_exist
+
+- block:
+    - name: Vikram Checking image package Modified
+      shell: (ls {{ installer_dir }}/cluster/images/*-{{ ansible_architecture }}-{{ version }}.tar.gz 2>/dev/null || echo no) | head -1
+
+    - name: Vikram Loading images from image package
+      shell: tar xf /root/download/icp2.1.0.1/cluster/images/ibm-cloud-private-x86_64-2.1.0.1.tar.gz -O | docker load
+      args:
+        executable: /bin/bash
+
+    - name: Validating if the core images exist
+      shell: docker inspect --type=image {{ item }}
+      args:
+        executable: /bin/bash
+      with_items:
+        - "{{ ansible_architecture | image_name(k8s_image) }}"
+        - "{{ ansible_architecture | image_name(k8s_pause_image) }}"
+
+    - name: Removing image package
+      shell: ls -l /root/download/icp2.1.0.1/cluster/images/ibm-cloud-private-x86_64-2.1.0.1.tar.gz
+  when: image_package_name.stdout != "no" and k8s_image_exist.stdout == "no"
+...

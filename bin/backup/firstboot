@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# IBM Proof of Technology
+#
+# Author : Vikram Khatri vikram.khatri@us.ibm.com
+#
+# Purpose: Set db2psc cookie for use by the root to run GUI
+
+# The /tmp/setxdisplay.cookie will be used by $BINHOME/setXDisplay
+# This file is run by gnome-terminal on startup
+# Look  /home/db2psc/.config/autostart/gnome-terminal.desktop
+
+type xauth
+if [[ $? -eq 0 ]] ; then
+   xauth list | grep `uname -n` > /tmp/setxdisplay.cookie
+fi
+tail -n 500 -f /tmp/allcommands.log

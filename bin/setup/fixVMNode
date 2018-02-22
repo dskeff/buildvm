@@ -1,0 +1,298 @@
+#!/bin/bash
+#
+#
+# Author : Vikram Khatri
+#
+# Purpose: Make changes in cloned image from node01 for other nodes
+#          This script needs 2 parameters.
+#          You run this script by specifying the argument as 
+#          which line to process in ip.txt. If first argument is -1 then
+#          it will use the MAC addresses given in this script.
+#          If MAC addresses change (in vmx file), then this script 
+#          will not work.
+
+set +x
+
+if [[ -z "$BINHOME" ]] ; then
+   . /root/bin/setup/setenvvars
+fi
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+if [ $# -lt 2 ] ; then
+    echo "Usage: $0 <line number of ip.txt to process> [poc|pot]" 1>&2
+    echo "Example: $0 [1|2|3|4|5|6] poc" 1>&2
+    echo "poc uses SAN whereas pot uses iscsi disks" 1>&2
+    exit 1
+fi
+
+ASSET=${2:=pot}
+IPFILE=$SCHOME/ip.txt
+HOSTFILE=/tmp/hosts
+HOSTHEAD=$SCHOME/hosts.head
+DNSFILE=$SCHOME/dns.txt
+MACARRAY=(00:0C:29:D3:08:84 00:50:56:27:18:37 00:50:56:22:71:36 00:50:56:2A:40:16 00:50:56:24:A1:56)
+MACADDRESS=`ip addr show eth0 | grep "link/ether" | awk '{print toupper($2)}'`
+echo Current MAC Address = $MACADDRESS
+
+if [ "$1" == "-1" ] ; then
+   cnt=1
+   found=0
+   NODELINE=1
+   for mac in "${MACARRAY[@]}"
+   do
+      echo Mac Address from array is $mac
+      if [ "$MACADDRESS" == "$mac" ] ; then
+         found=$cnt
+      fi
+      ((cnt++))
+   done
+   if [ $found -eq 0 ] ; then
+      echo MAC address $MACADDRESS of this VM does not match 
+      echo with mac address given in ${MACARRAY[@]}  
+      exit -1 
+   fi
+   NODELINE=$found
+   echo "Node line is " $NODELINE
+else
+   NODELINE=$1
+fi
+
+echo #############################################
+echo $(date +"%D %T.%3N") Starting script fixVMNode $NODELINE $ASSET
+echo #############################################
+
+IPLINE=`sed -n ${NODELINE}p $IPFILE`
+ARRAY=($IPLINE)
+NODENUM=${ARRAY[0]}
+IPADDR=${ARRAY[1]}
+GATEWAY=${ARRAY[2]}
+HOSTNAME=${ARRAY[3]}
+SHORTNAME=${HOSTNAME%%.*}
+
+IPLINE=`sed -n 1p $IPFILE`
+ARRAY=($IPLINE)
+FIRSTHOSTIP=${ARRAY[1]}
+FIRSTSUBNET=${FIRSTHOSTIP%.*}.0
+FIRSTHOST=${ARRAY[3]}
+FIRSTHOSTNM=${FIRSTHOST%%.*}
+
+if [ -f $SCHOME/rs.txt ] ; then
+   RSFILE=$SCHOME/rs.txt
+   RSLINE=`sed -n ${NODELINE}p $RSFILE`
+   ARRAY=($RSLINE)
+   RSADDR=${ARRAY[1]}
+else
+   RSFILE="NA"
+fi
+
+DNS1=`sed -n 1p $DNSFILE`
+DNS2=`sed -n 2p $DNSFILE`
+
+echo #############################################
+echo $(date +"%D %T.%3N") Copy 10-local.rules in /etc/udev/rules.d
+echo #############################################
+$CP $SCHOME/10-local.rules /etc/udev/rules.d
+
+echo #############################################
+echo $(date +"%D %T.%3N") Copy /etc/sudoers
+echo #############################################
+$CP $SCHOME/sudoers /etc
+
+echo #############################################
+echo $(date +"%D %T.%3N") Copy runall and db2status
+echo #############################################
+$CP $SCHOME/runall /usr/bin
+chmod +x /usr/bin/runall
+
+echo #############################################
+echo $(date +"%D %T.%3N") Replace VM wallpaper
+echo #############################################
+
+if [ "$NODENUM" == "01" ] ; then
+  $MV -f /home/db2psc/bin/backup/OrigBackground.png /home/db2psc/bin/backup/OrigBackground.png.save
+  $CP -fp /home/db2psc/bin/backup/FinalOrigBackground.png /home/db2psc/bin/backup/OrigBackground.png
+  su -l db2psc -c "/home/db2psc/bin/liinfo"
+fi
+
+echo #############################################
+echo $(date +"%D %T.%3N") Remove entry for 50000 from /etc/services
+echo #############################################
+sed -i /50000/d /etc/services
+
+echo #############################################
+echo $(date +"%D %T.%3N") Fix hosts file
+echo #############################################
+
+> $HOSTFILE
+
+while read a b c d
+do
+   NM=${d%%.*}
+   echo $b $d $NM >> $HOSTFILE
+done < $IPFILE
+if [ "$RSFILE" != "NA" ] ; then
+  while read a b c d
+  do
+     NM=${d%%.*}
+     echo $b $d $NM >> $HOSTFILE
+  done < $RSFILE
+fi
+cat $HOSTHEAD $HOSTFILE > /etc/hosts
+
+echo #############################################
+echo $(date +"%D %T.%3N") fix NFS auto mount
+echo #############################################
+
+if [ "$NODENUM" == "01" ] ; then
+   if ! grep -qs "UUID=c80d2fb9-205d-46fd-b39e-3f4f0bb1ea6c" /etc/fstab; then
+      echo -e "UUID=c80d2fb9-205d-46fd-b39e-3f4f0bb1ea6c\t/mnt/disk\text4\tdefaults\t1 1" >> /etc/fstab
+   fi
+else
+   $CP -f $SCHOME/auto.master /etc
+   /bin/sed "s/node01:/${FIRSTHOSTNM}:/g" $SCHOME/auto.misc > /etc/auto.misc
+fi
+if ! grep -qs "UUID=798f8303-bc1c-4581-8d51-6973f8387b49" /etc/fstab; then
+   echo Stop docker service
+   systemctl stop docker.service
+   df -h
+   if grep -qs /var/lib/docker /proc/mounts; then
+      umount /var/lib/docker
+   fi
+   if grep -qs /mnt/docker /proc/mounts; then
+      umount /mnt/docker
+   fi
+   df -h
+   echo  Remove contents of /var/lib/docker
+   $RM -fr /var/lib/docker
+   echo Create /var/lib/docker
+   mkdir -p /var/lib/docker
+   echo Create /mnt/docker
+   mkdir -p /mnt/docker
+   echo Create entry for /mnt/docker in /etc/fstab
+   echo -e "UUID=798f8303-bc1c-4581-8d51-6973f8387b49\t/mnt/docker\text4\tdefaults\t1 1" >> /etc/fstab
+   echo Create rbind mount for /var/lib/docker to /mnt/docker
+   echo -e "/mnt/docker\t/var/lib/docker\tnone\tdefaults,rbind\t0 0" >> /etc/fstab
+   echo Mount /mnt/docker
+   mount /mnt/docker
+   echo Mount rbind /mnt/docker to /var/lib/docker
+   mount --rbind /mnt/docker /var/lib/docker
+   echo Start docker service
+   systemctl start docker
+   echo Count total docker images from the disk
+   docker images | wc -l
+fi
+
+echo #############################################
+echo $(date +"%D %T.%3N") Fix files 
+echo #############################################
+echo "Fixing ntp, rsp exports scsitarget"
+if [ "$NODENUM" == "01" ] ; then
+   vmware-toolbox-cmd timesync enable
+   while read a b c d
+   do
+      NM=${d%%.*}
+      DN=${d#*.}
+   done < $IPFILE
+   sed "s/192.168.142.0/${FIRSTSUBNET}/g" $SCHOME/ntp.conf.server > /etc/ntp.conf
+   $CP -f $SCHOME/exports /etc/exports
+   systemctl enable rpcbind
+   systemctl start rpcbind
+   systemctl enable nfs-server
+   systemctl start nfs-server
+else
+   sed "s/192.168.142.101/${FIRSTHOSTIP}/g" $SCHOME/ntp.conf.client > /etc/ntp.conf
+   > /etc/exports
+   systemctl enable rpcbind
+   systemctl enable autofs
+   systemctl start rpcbind
+   systemctl start autofs
+   systemctl disable nfs-server
+fi
+$CP $SCHOME/ntp.keys /etc
+systemctl enable ntpd.service
+systemctl start ntpd
+systemctl status -l ntpd
+ntpq -p
+
+echo #############################################
+echo $(date +"%D %T.%3N") Fix iscsi
+echo #############################################
+
+if [ "$ASSET" == "pot" ] ; then
+   if [ "$NODENUM" == "01" ] ; then
+      sed "s/192.168.142.101/${FIRSTHOSTIP}/g" $SCHOME/targets.conf > /etc/tgt/targets.conf
+      systemctl disable tgtd.service
+      systemctl disable iscsi.service
+      systemctl disable iscsid.service
+   else
+      $CP -f $SCHOME/targets.conf.orig /etc/tgt/targets.conf
+      systemctl disable tgtd.service
+      systemctl disable iscsi.service
+      systemctl disable iscsid.service
+   fi
+   # Discover targets and create entries in /var/lib/iscsi/nodes 
+   # and in /var/lib/iscsi/send_targets
+   # The command to do this is 
+   # iscsiadm --mode discovery --type sendtargets --portal $FIRSTHOSTIP \
+   # --login
+   # Run above command to discover and save nodes
+else
+   $CP -f $SCHOME/targets.conf.orig /etc/tgt/targets.conf
+   systemctl disable tgtd.service
+   systemctl disable iscsi.service
+   systemctl disable iscsid.service
+fi
+
+echo #############################################
+echo $(date +"%D %T.%3N") Set Network
+echo #############################################
+
+systemctl disable NetworkManager.service
+#hostnamectl set-hostname $SHORTNAME
+#hostnamectl set-hostname $HOSTNAME --static
+#hostnamectl status
+echo Setting host name in /etc/hostname
+echo "$HOSTNAME" > /etc/hostname
+sed "s/IPADDR=.*/IPADDR=${IPADDR}/g" $SCHOME/ifcfg-eth0 > /etc/sysconfig/network-scripts/ifcfg-eth0
+sed -i "s/GATEWAY=.*/GATEWAY=$GATEWAY/g" /etc/sysconfig/network
+sed -i "s/GATEWAY=.*/GATEWAY=${GATEWAY}/g" /etc/sysconfig/network-scripts/ifcfg-eth0
+if [[ "$RSFILE" != "NA" ]] ; then
+   sed "s/IPADDR=.*/IPADDR=${RSADDR}/g" $SCHOME/ifcfg-eth1 > /etc/sysconfig/network-scripts/ifcfg-eth1
+fi
+sed "s/8.8.8.8/$DNS1/g" $SCHOME/resolv.conf > /etc/resolv.conf
+sed -i "s/8.8.4.4/$DNS2/g" /etc/resolv.conf
+sed -i "s/ibm.local/${HOSTNAM#*.}/g" /etc/resolv.conf
+$RM -f /etc/udev/rules.d/70-persistent-net.rules
+
+echo #############################################
+echo $(date +"%D %T.%3N") Adding aliases
+echo #############################################
+$CP -f $SCHOME/alias.sh /etc/profile.d/alias.sh
+
+
+if [ "$NODENUM" == "01" ] ; then
+  ln -s /mnt/disk $DOWNLOADDIR
+  echo #############################################
+  echo $(date +"%D %T.%3N") Adding Web Console.desktop file to db2psc
+  echo #############################################
+  CONNAME="IBM Cloud Private Web Console.desktop"
+  MASTERNODE=$(awk '/master/{getline; print $1}' $SCHOME/hosts)
+  sed "s/MASTER_IPADDRESS/$MASTERNODE/g" $SCHOME/"$CONNAME" > /home/db2psc/Desktop/"$CONNAME"
+  #$CP -f $SCHOME/"$CONNAME" /home/db2psc/Desktop
+  chown db2psc.db2psc /home/db2psc/Desktop/"$CONNAME"
+else
+  ln -s /mnt/misc/download $DOWNLOADDIR
+  su -l db2psc -c "ln -s /mnt/misc/pot_icp /home/db2psc/pot_icp"
+fi
+
+sync
+sleep 1
+
+echo #############################################
+echo $(date +"%D %T.%3N") Rebooting
+echo #############################################
+reboot

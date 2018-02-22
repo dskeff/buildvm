@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#
+# Vikram Khatri
+#
+#  Run this script to reset the MAC address and others of node01 so that boot 
+#  happens  properly for building the VMs.
+
+if [[ -z "$BINHOME" ]] ; then
+   . /root/bin/setup/setenvvars
+fi
+
+> $LOGFILE
+$CP -f $SCHOME/node01.rules /etc/udev/rules.d/70-persistent-net.rules
+$CP -f $SCHOME/runall /bin
+$RM -f $FIRST_BOOT_FLAG
+$RM -f $SECOND_BOOT_FLAG
+$RM -f $LAB_DONE_FLAG
+$CP -f $SCHOME/rc.local /etc/rc.d/rc.local
+chmod 755 /etc/rc.d/rc.local
+if [[ -d /home/db2psc/bin ]] ; then
+   $CP -f $SCHOME/firstboot /home/db2psc/bin/firstboot
+fi
+$RM -fr /home/db2psc/.ssh
+$RM -fr /root/.ssh
+$RM -fr $DOWNLOADDIR
+sync
+sleep 2
+poweroff

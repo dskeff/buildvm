@@ -1,0 +1,20 @@
+tinker panic 0
+restrict default kod nomodify notrap
+restrict 127.0.0.1 
+
+# -- CLIENT NETWORK -------
+
+# --- OUR TIMESERVERS ----- 
+server 192.168.142.101 iburst
+server 127.127.1.0
+
+# Undisciplined Local Clock.
+# fudge   127.127.1.0 stratum 9
+
+driftfile /var/lib/ntp/drift/ntp.drift # path for drift file
+broadcastdelay  0.008
+
+logfile   /var/log/ntp		# alternate log file
+keys /etc/ntp.keys		# path for keys file
+trustedkey 1			# define trusted keys
+requestkey 1			# key (7) for accessing server variables

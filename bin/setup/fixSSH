@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#  Author Vikram Khatri
+
+if [[ -z "$BINHOME" ]] ; then
+   . /root/bin/setup/setenvvars
+fi
+
+
+set +x
+
+islive() {
+  target=$1
+  count=$(ping -c 1 $target | grep -E "icmp.*time" | wc -l)
+  if [ $count -eq 0 ] ; then
+     echo 1;
+  else
+     echo 0;
+  fi
+}
+
+IPFILE=$SCHOME/ip.txt
+
+while true
+do
+   live=1
+   while read a b c d
+   do
+      NM=${d%%.*}
+      live=$(islive $NM)
+      if [ $live -eq 1 ] ; then
+         break;
+      fi
+   done < $IPFILE
+   if [ $live -eq 0 ] ; then
+      ############################################
+      echo $(date +"%D %T.%3N") All are alive now. Sleep 10 then genSSH
+      ############################################
+      sleep 10
+      $BINHOME/genSSH db2psc password db2iadm /home/db2psc
+      $BINHOME/genSSH root password root /root
+      sleep 2
+      break
+   else
+      ############################################
+      echo $(date +"%D %T.%3N") : Waiting for all to come alive
+      ############################################
+      sleep 10
+   fi
+done
