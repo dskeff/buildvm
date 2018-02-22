@@ -68,6 +68,6 @@ accomplish the same.
 
 Except VMDK, I have added all other scripts so that it can become an example.
 
-Note: I do not like Virtual Box and I am a fan of VMware Workstation as this is
+Note: I did not develop taste for using Virtual Box. I am a fan of VMware Workstation as this is
 enterprise software which has support, performance and a track record. I see much
-better performance using VMware Workstation.
+better performance using VMware Workstation than what I had seen with Virtual Box one time.
